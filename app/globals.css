@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-tea-50 text-neutral-900 antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, rgba(204, 157, 66, 0.12), transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    @apply bg-neutral-950 text-neutral-100;
+    background-image:
+      radial-gradient(1200px 600px at 50% -10%, rgba(204, 157, 66, 0.15), transparent);
+  }
+}
+
+/* Inshorts-style vertical snap feed */
+.snap-feed {
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-card {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Hide scrollbar but keep scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
