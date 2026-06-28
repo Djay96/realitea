@@ -54,5 +54,5 @@ export const REALITY_KEYWORDS: string[] = [
 /** How many items to keep in the rolling cached feed. */
 export const FEED_MAX_ITEMS = 500;
 
-/** Max new articles to summarize per hourly run (controls DeepSeek cost). */
-export const MAX_SUMMARIES_PER_RUN = 40;
+/** Max new articles to summarize per hourly run (controls DeepSeek cost + runtime). */
+export const MAX_SUMMARIES_PER_RUN = Number(process.env.MAX_SUMMARIES_PER_RUN) || 40;
