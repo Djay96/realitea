@@ -3,21 +3,43 @@
 Inshorts-style worldwide reality-TV news app. Next.js 14 (App Router) on Netlify,
 DeepSeek for summaries, Netlify Blobs for the cached feed.
 
-## News pipeline (how the feed stays on-topic)
+## News pipeline (how the feed stays on-topic + per country)
 
-- `lib/shows.ts` is the **single source of truth** for which reality shows we cover
-  (~105 curated, worldwide, with `aliases`/`network`/`region`/`genre`/`status`/`active`).
-- Two ways it drives the pipeline:
+- `lib/shows.ts` is the **single source of truth** — ~227 IMDb-keyed shows grouped by
+  country (`COUNTRY_META` defines the ~26 country buckets). Each show has
+  `aliases`/`network`/`region`/`genre`/`status`/`active`/`imdb`/optional `query`.
+- It drives the pipeline:
   1. `getShowNewsQueries()` builds the NewsAPI query list from active shows
      (`lib/sources.ts` → `NEWS_API_QUERIES`), rotated 8/run by UTC hour.
   2. `matchShowsInText()` tags each article with the shows it mentions; `refresh.ts`
-     **drops any article that matches no active show** — the authoritative relevance
-     gate. `REALITY_KEYWORDS` is now only a cheap pre-filter for broad RSS feeds.
-- `tagArticle()` (`lib/tagging.ts`) sets `shows`, and a matched show's home region
-  reinforces the `regions` tag. `topics` (coarse buckets) is still produced for
-  onboarding/ranking UI compatibility.
-- To add/retire a show: edit `SHOWS` in `lib/shows.ts`. Keep `active === status !== "ended"`.
-  Aliases must reflect how **headlines** write the show (MAFS, RHOBH, LIUK, BBCAN).
+     **drops any article whose shows are all inactive** (seed `active` ∪ weekly IMDb
+     override) — the authoritative relevance gate. `REALITY_KEYWORDS` is only a cheap
+     pre-filter for broad RSS feeds.
+  3. `tagArticle()` sets `regions` = the matched shows' **home countries**
+     (`regionsForShows`), falling back to keyword/sourceRegion only when just a global
+     umbrella matched. This is the precise signal the country filter uses.
+- **Hard country filter**: `filterByRegion()` (`lib/rankFeed.ts`) keeps only items whose
+  `regions` include the user's chosen country; `Feed.tsx` applies it before ranking.
+  `region: "global"` = show everything. Onboarding country list = `USER_REGIONS`
+  (derived from `getSelectableCountries()`, grouped by continent).
+- To add/retire a show: append to `SHOWS` with its IMDb id. Keep
+  `active === status !== "ended"`. Aliases must reflect **headline** forms (MAFS, RHOBH,
+  LIUK, BBCAN). `topics` (coarse buckets) still produced for ranking UI compatibility.
+
+## Weekly IMDb refresh (golden source)
+
+- IMDb is the golden source. `lib/refreshShows.ts` (`refreshShowsFromOmdb`) looks up each
+  show's `imdb` id via **OMDb** (omdbapi.com, reuses `OMDB_API_KEY`) and re-derives
+  status/active from IMDb's `Year` (`deriveStatus`): ongoing → active; ended ≥2 yrs → inactive.
+- Runner: **Netlify scheduled function** `netlify/functions/refresh-shows.mts` (`schedule
+  "0 6 * * 1"`, Mondays 06:00 UTC). It writes per-show overrides to Netlify Blob
+  `shows-overrides.json` (+ `…-meta.json` changelog). `lib/showOverrides.ts` reads them in
+  the hourly gate → ended shows drop out **live, no redeploy** ("auto-apply").
+- Preview locally: `OMDB_API_KEY=… npm run refresh:shows` (read-only, prints changes).
+- **OMDb can't browse IMDb by genre** → the weekly job keeps KNOWN shows fresh but does
+  NOT discover new shows. Add new shows by appending their IMDb id to `SHOWS`.
+- A Netlify scheduled function can't `git commit`; "auto-apply" = write the override blob
+  the app reads live. The committed `SHOWS` catalog is the seed/fallback.
 
 ## Learnings log
 
@@ -36,7 +58,19 @@ DeepSeek for summaries, Netlify Blobs for the cached feed.
 - Single-word generic aliases (e.g. "survivor") can match non-reality copy
   ("war survivor film"); accepted tradeoff for coverage.
 
+### Country attribution / leak-free filtering
+- Bare multi-country franchise names ("survivor", "the voice", "love island", "big brother")
+  live ONLY on `region:"global"` umbrella entries; each national version owns a *qualified*
+  alias ("survivor south africa", "love island uk"). So "Survivor South Africa" tags only
+  south-africa, never leaking into the US feed.
+- Cost of that rule: a bare-name origin headline ("Survivor 48") matches only the umbrella
+  (→ global). Recovered via `tagArticle`'s fallback: when no country-specific show matched,
+  `matchRegions(text, sourceRegion)` attributes the country from network keywords / the RSS
+  feed's `sourceRegion` (US feeds → us). Verified end-to-end.
+
 ### Tooling / env quirks
+- `Date.now()`/`new Date()` are fine in regular Node scripts and Netlify functions — the
+  ban is ONLY inside Workflow tool scripts. `lib/refreshShows.ts` uses `new Date()` freely.
 - **Workflow subagents can hit an account-level "session limit"** (e.g. "You've hit
   your session limit · resets <time>"). When that happens every agent fails and the
   workflow returns empty — fall back to doing the work solo, don't keep retrying.

@@ -4,14 +4,30 @@ import type { RegionSlug, UserPrefs } from "./types";
 
 const KEY = "realitea:prefs";
 
+/** Map a browser-locale country subtag (e.g. "pt-BR" → "br") to our country bucket. */
+const LOCALE_COUNTRY_TO_REGION: Record<string, RegionSlug> = {
+  us: "us", ca: "canada", mx: "mexico", br: "brazil", ar: "argentina",
+  gb: "uk", uk: "uk", es: "spain", de: "germany", fr: "france", it: "italy",
+  se: "sweden", nl: "netherlands", ng: "nigeria", za: "south-africa",
+  tr: "turkey", in: "india", kr: "korea", jp: "japan", id: "indonesia",
+  ph: "philippines", th: "thailand", vn: "vietnam", my: "malaysia",
+  au: "australia", nz: "australia",
+};
+
+/** Map a bare language code (no region) to a sensible default country. */
+const LANG_TO_REGION: Record<string, RegionSlug> = {
+  pt: "brazil", tr: "turkey", ko: "korea", ja: "japan", id: "indonesia",
+  th: "thailand", vi: "vietnam", ms: "malaysia", de: "germany", sv: "sweden",
+  nl: "netherlands", it: "italy", fr: "france", hi: "india",
+};
+
 export function guessRegionFromLocale(): RegionSlug {
   if (typeof navigator === "undefined") return "global";
   const lang = navigator.language.toLowerCase();
-  if (lang.includes("in")) return "india";
-  if (lang.includes("au")) return "australia";
-  if (lang.includes("ca")) return "canada";
-  if (lang.includes("gb") || lang.endsWith("-uk")) return "uk";
-  if (lang.startsWith("en")) return "us";
+  const [base, country] = lang.split("-");
+  if (country && LOCALE_COUNTRY_TO_REGION[country]) return LOCALE_COUNTRY_TO_REGION[country];
+  if (LANG_TO_REGION[base]) return LANG_TO_REGION[base];
+  if (base === "en") return "us";
   return "global";
 }
 

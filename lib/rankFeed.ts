@@ -1,4 +1,16 @@
-import type { NewsItem, UserPrefs } from "./types";
+import type { NewsItem, RegionSlug, UserPrefs } from "./types";
+
+/**
+ * Hard country filter: keep ONLY items whose matched shows belong to the
+ * selected country. "global" means no filter (show everything). An item with no
+ * country tag (e.g. only a global franchise umbrella matched) shows just under
+ * "global". This is what makes "select a country → see only that country's
+ * shows' news" literal.
+ */
+export function filterByRegion(items: NewsItem[], region: RegionSlug | null): NewsItem[] {
+  if (!region || region === "global") return items;
+  return items.filter((i) => (i.regions ?? []).includes(region));
+}
 
 function recencyScore(publishedAt: string): number {
   const ageHours = (Date.now() - new Date(publishedAt).getTime()) / 3_600_000;

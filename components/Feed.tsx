@@ -5,7 +5,7 @@ import type { NewsItem, RegionSlug, UserPrefs } from "@/lib/types";
 import { getReadSet, markRead } from "@/lib/readState";
 import { loadPrefs, savePrefs } from "@/lib/userPrefs";
 import { adsEnabled } from "@/lib/ads";
-import { rankFeed } from "@/lib/rankFeed";
+import { rankFeed, filterByRegion } from "@/lib/rankFeed";
 import NewsCard from "./NewsCard";
 import AdCard from "./AdCard";
 import Onboarding from "./Onboarding";
@@ -39,7 +39,10 @@ export default function Feed({
 
   const buildDeck = useCallback(
     (items: NewsItem[], read: Set<string>, all: boolean, userPrefs: UserPrefs | null) => {
-      const ranked = personalize(items, userPrefs);
+      // Hard country filter first: a user only ever sees news for shows in the
+      // country they selected (global = everything). Then rank what remains.
+      const inCountry = filterByRegion(items, userPrefs?.region ?? null);
+      const ranked = personalize(inCountry, userPrefs);
       return all ? ranked : ranked.filter((i) => !read.has(i.id));
     },
     [personalize],
@@ -107,8 +110,9 @@ export default function Feed({
   }, [allItems, readSet, prefs, buildDeck]);
 
   const unreadCount = useMemo(
-    () => allItems.filter((i) => !readSet.has(i.id)).length,
-    [allItems, readSet],
+    () =>
+      filterByRegion(allItems, prefs?.region ?? null).filter((i) => !readSet.has(i.id)).length,
+    [allItems, readSet, prefs],
   );
 
   const rendered = useMemo(() => {

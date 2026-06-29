@@ -1,5 +1,5 @@
 import type { RawArticle, NewsItem } from "./types";
-import { matchShowsInText, SHOW_BY_ID } from "./shows";
+import { matchShowsInText, regionsForShows } from "./shows";
 
 interface TopicRule {
   slug: string;
@@ -55,14 +55,13 @@ function matchRegions(text: string, sourceRegion?: import("./types").RegionSlug)
 export function tagArticle(article: RawArticle): RawArticle {
   const text = haystack(article);
   const shows = matchShowsInText(text);
-  const regions = matchRegions(text, article.sourceRegion);
-  // Let the matched shows reinforce region tags (a show's home region is a
-  // strong signal even when the copy doesn't name the country).
-  for (const id of shows) {
-    const region = SHOW_BY_ID.get(id)?.region;
-    if (region && region !== "global" && !regions.includes(region)) {
-      regions.push(region);
-    }
+  // Country attribution is driven by the matched shows' home countries — that's
+  // the precise signal the hard country filter relies on. Only when no
+  // country-specific show matched (e.g. just a global franchise umbrella) do we
+  // fall back to keyword/source-region detection, then to "global".
+  let regions = regionsForShows(shows);
+  if (regions.length === 0) {
+    regions = matchRegions(text, article.sourceRegion);
   }
   return {
     ...article,

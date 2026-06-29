@@ -1,4 +1,31 @@
-export type RegionSlug = "us" | "uk" | "india" | "australia" | "canada" | "global";
+export type RegionSlug =
+  | "us"
+  | "canada"
+  | "mexico"
+  | "brazil"
+  | "argentina"
+  | "latam"
+  | "uk"
+  | "spain"
+  | "germany"
+  | "france"
+  | "italy"
+  | "sweden"
+  | "netherlands"
+  | "nigeria"
+  | "south-africa"
+  | "turkey"
+  | "mena"
+  | "india"
+  | "korea"
+  | "japan"
+  | "indonesia"
+  | "philippines"
+  | "thailand"
+  | "vietnam"
+  | "malaysia"
+  | "australia"
+  | "global";
 
 export interface RawArticle {
   /** Stable id derived from the canonical URL. */

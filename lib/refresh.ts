@@ -10,6 +10,7 @@ import {
 } from "./feedStore";
 import { MAX_SUMMARIES_PER_RUN } from "./sources";
 import { tagArticle } from "./tagging";
+import { getActiveShowIds } from "./showOverrides";
 import { pickDiverse } from "./pickDiverse";
 import { fetchOgImage } from "./extractImage";
 import { fetchOmdbPoster } from "./omdb";
@@ -48,10 +49,13 @@ export async function refreshNews(
     const tagged = dedupeRaw([...rss.articles, ...api.articles]).map(tagArticle);
     totalFetched = rss.articles.length + api.articles.length;
 
-    // Core relevance gate: keep ONLY articles that mention an active reality
-    // show from lib/shows.ts. This is what stops generic entertainment news
-    // (and unrelated items from broad/dedicated feeds) reaching the feed.
-    const relevant = tagged.filter((a) => (a.shows?.length ?? 0) > 0);
+    // Core relevance gate: keep ONLY articles that mention a show that is still
+    // active after the weekly IMDb refresh (lib/shows.ts seed + override blob).
+    // This stops generic entertainment news AND news for shows IMDb says ended.
+    const activeIds = await getActiveShowIds();
+    const relevant = tagged.filter((a) =>
+      (a.shows ?? []).some((id) => activeIds.has(id)),
+    );
     deduped = relevant.length;
 
     const existing = await readFeed();

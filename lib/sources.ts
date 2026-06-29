@@ -1,5 +1,5 @@
 import type { RegionSlug } from "./types";
-import { getShowNewsQueries } from "./shows";
+import { getShowNewsQueries, getSelectableCountries, COUNTRY_META } from "./shows";
 
 /**
  * Configuration for where raw reality-TV news comes from.
@@ -94,14 +94,14 @@ export const MAX_SUMMARIES_PER_RUN = Number(process.env.MAX_SUMMARIES_PER_RUN) |
 /** Max articles from a single publisher per run (stops one feed dominating). */
 export const MAX_PER_SOURCE_PER_RUN = Number(process.env.MAX_PER_SOURCE_PER_RUN) || 2;
 
-/** User-selectable regions in onboarding. */
-export const USER_REGIONS: { slug: RegionSlug; label: string }[] = [
-  { slug: "us", label: "United States" },
-  { slug: "uk", label: "United Kingdom" },
-  { slug: "india", label: "India" },
-  { slug: "australia", label: "Australia" },
-  { slug: "canada", label: "Canada" },
-  { slug: "global", label: "Global / All regions" },
+/**
+ * User-selectable countries in onboarding — derived from the shows catalog so
+ * the list always matches the countries we actually have shows for. Grouped by
+ * continent; "Global / All" is appended last.
+ */
+export const USER_REGIONS: { slug: RegionSlug; label: string; group: string }[] = [
+  ...getSelectableCountries().map((c) => ({ slug: c.region, label: c.label, group: c.group })),
+  { slug: "global" as RegionSlug, label: COUNTRY_META.global.label, group: COUNTRY_META.global.group },
 ];
 
 /** User-selectable show interests (topic slugs match tagging.ts). */

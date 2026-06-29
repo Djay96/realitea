@@ -13,9 +13,9 @@ const RAW: Array<
     source: "Demo Wire UK",
     publishedAt: minutesAgo(12),
     ingestedAt: minutesAgo(12),
-    regions: ["uk", "global"],
+    regions: ["uk"],
     topics: ["love-island"],
-    shows: ["love-island"],
+    shows: ["love-island-uk", "love-island"],
     summary:
       "Love Island is back with contestants from five continents, signalling the franchise's biggest global push to date. Producers promise new twists, a redesigned villa, and a live-vote format that lets international audiences influence couplings in real time. Early teasers have already racked up millions of views across social platforms ahead of the premiere.",
     imageUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80",
@@ -41,7 +41,7 @@ const RAW: Array<
     source: "Demo Wire US",
     publishedAt: minutesAgo(58),
     ingestedAt: minutesAgo(58),
-    regions: ["us", "global"],
+    regions: ["us"],
     topics: ["drag-race"],
     shows: ["rupauls-drag-race"],
     summary:
@@ -85,7 +85,7 @@ const RAW: Array<
     ingestedAt: minutesAgo(180),
     regions: ["us"],
     topics: ["survivor"],
-    shows: ["survivor"],
+    shows: ["survivor-us", "survivor"],
     summary:
       "To mark a major milestone, Survivor is bringing back fan-favourite veterans for an anniversary season filmed on a remote new island. The cast spans multiple generations of players, setting up old rivalries and fresh alliances. Producers promise classic challenges reimagined with modern twists, plus a record-setting prize for the sole survivor.",
     imageUrl: "https://images.unsplash.com/photo-1540574163026-d643ea20ade2?w=800&q=80",

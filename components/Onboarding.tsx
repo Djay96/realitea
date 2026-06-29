@@ -1,9 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { RegionSlug } from "@/lib/types";
 import { INTEREST_OPTIONS, USER_REGIONS } from "@/lib/sources";
 import { guessRegionFromLocale } from "@/lib/userPrefs";
+
+/** Countries grouped by continent for the picker (order preserved from catalog). */
+function useGroupedRegions() {
+  return useMemo(() => {
+    const groups: { group: string; regions: typeof USER_REGIONS }[] = [];
+    for (const r of USER_REGIONS) {
+      let g = groups.find((x) => x.group === r.group);
+      if (!g) {
+        g = { group: r.group, regions: [] };
+        groups.push(g);
+      }
+      g.regions.push(r);
+    }
+    return groups;
+  }, []);
+}
 
 interface OnboardingProps {
   onComplete: (region: RegionSlug, interests: string[]) => void;
@@ -14,6 +30,7 @@ export default function Onboarding({ onComplete, onClose }: OnboardingProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [region, setRegion] = useState<RegionSlug>(() => guessRegionFromLocale());
   const [interests, setInterests] = useState<string[]>([]);
+  const groupedRegions = useGroupedRegions();
 
   const toggleInterest = (slug: string) => {
     setInterests((prev) =>
@@ -30,7 +47,7 @@ export default function Onboarding({ onComplete, onClose }: OnboardingProps) {
               Step {step} of 2
             </p>
             <h2 className="mt-1 text-2xl font-bold">
-              {step === 1 ? "Where's your tea from?" : "What do you watch?"}
+              {step === 1 ? "Pick your country" : "What do you watch?"}
             </h2>
           </div>
           {onClose ? (
@@ -47,22 +64,31 @@ export default function Onboarding({ onComplete, onClose }: OnboardingProps) {
         {step === 1 ? (
           <>
             <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
-              Pick your region so we can surface the reality shows you care about.
+              You'll see news only for the reality shows in the country you pick.
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              {USER_REGIONS.map((r) => (
-                <button
-                  key={r.slug}
-                  type="button"
-                  onClick={() => setRegion(r.slug)}
-                  className={`rounded-2xl border px-3 py-3 text-left text-sm font-medium transition ${
-                    region === r.slug
-                      ? "border-tea-500 bg-tea-50 text-tea-800 dark:bg-tea-900/30 dark:text-tea-200"
-                      : "border-neutral-200 hover:border-tea-300 dark:border-neutral-700"
-                  }`}
-                >
-                  {r.label}
-                </button>
+            <div className="max-h-72 space-y-4 overflow-y-auto pr-1">
+              {groupedRegions.map((g) => (
+                <div key={g.group}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-neutral-400">
+                    {g.group}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {g.regions.map((r) => (
+                      <button
+                        key={r.slug}
+                        type="button"
+                        onClick={() => setRegion(r.slug)}
+                        className={`rounded-2xl border px-3 py-3 text-left text-sm font-medium transition ${
+                          region === r.slug
+                            ? "border-tea-500 bg-tea-50 text-tea-800 dark:bg-tea-900/30 dark:text-tea-200"
+                            : "border-neutral-200 hover:border-tea-300 dark:border-neutral-700"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
             <button
