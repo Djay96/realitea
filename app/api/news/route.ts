@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
     { updatedAt: feed.updatedAt, count: items.length, isDemo: feed.isDemo, items },
     {
       headers: {
-        // Cheap CDN caching so user refreshes don't re-run anything heavy.
-        "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+        // Short browser cache only — avoid CDN serving a stale partial feed.
+        "Cache-Control": "private, max-age=30, must-revalidate",
       },
     },
   );
