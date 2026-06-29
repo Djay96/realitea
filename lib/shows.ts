@@ -138,7 +138,7 @@ export const SHOWS: Show[] = [
   { id: "love-on-the-spectrum-us", name: "Love on the Spectrum U.S.", aliases: ["love on the spectrum"], network: "Netflix", region: "us", genre: "dating", status: "returning", active: true, imdb: "tt19037550" },
   { id: "million-dollar-secret", name: "Million Dollar Secret", aliases: ["million dollar secret"], network: "Netflix", region: "us", genre: "competition", status: "airing", active: true, imdb: "tt32491422" },
   { id: "love-island-games", name: "Love Island Games", aliases: ["love island games"], network: "Peacock", region: "us", genre: "dating", status: "returning", active: true, imdb: "tt29380987" },
-  { id: "the-real-housewives", name: "The Real Housewives", aliases: ["real housewives", "housewives"], network: "Bravo", region: "us", genre: "docusoap", status: "returning", active: true, imdb: "tt0888622" },
+  { id: "the-real-housewives", name: "The Real Housewives", aliases: ["real housewives", "housewives"], network: "Bravo", region: "us", genre: "docusoap", status: "returning", active: true },
   { id: "rhobh", name: "RHO Beverly Hills", aliases: ["real housewives of beverly hills", "rhobh"], network: "Bravo", region: "us", genre: "docusoap", status: "returning", active: true, imdb: "tt1720601" },
   { id: "rhony", name: "RHO New York", aliases: ["real housewives of new york", "rhony"], network: "Bravo", region: "us", genre: "docusoap", status: "returning", active: true, imdb: "tt1135300" },
   { id: "rhoa", name: "RHO Atlanta", aliases: ["real housewives of atlanta", "rhoa"], network: "Bravo", region: "us", genre: "docusoap", status: "returning", active: true, imdb: "tt1457117" },
