@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NewsItem, RegionSlug, UserPrefs } from "@/lib/types";
 import { getReadSet, markRead } from "@/lib/readState";
 import { loadPrefs, savePrefs } from "@/lib/userPrefs";
+import { adsEnabled } from "@/lib/ads";
 import { rankFeed } from "@/lib/rankFeed";
 import NewsCard from "./NewsCard";
 import AdCard from "./AdCard";
@@ -114,7 +115,7 @@ export default function Feed({
     const out: Array<{ type: "news"; item: NewsItem } | { type: "ad"; key: string }> = [];
     deck.forEach((item, idx) => {
       out.push({ type: "news", item });
-      if ((idx + 1) % ADS_EVERY === 0) {
+      if (adsEnabled && (idx + 1) % ADS_EVERY === 0) {
         out.push({ type: "ad", key: `ad-slot-${idx}` });
       }
     });
