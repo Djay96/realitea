@@ -11,6 +11,7 @@ import {
 import { MAX_SUMMARIES_PER_RUN } from "./sources";
 import { tagArticle } from "./tagging";
 import { pickDiverse } from "./pickDiverse";
+import { fetchOgImage } from "./extractImage";
 
 function dedupeRaw(articles: RawArticle[]): RawArticle[] {
   const byId = new Map<string, RawArticle>();
@@ -56,15 +57,20 @@ export async function refreshNews(
     const now = new Date().toISOString();
     const newItems: NewsItem[] = [];
     for (const article of fresh) {
-      const { text, usedFallback } = await summarizeArticle(article);
+      let imageUrl = article.imageUrl;
+      if (!imageUrl) {
+        imageUrl = await fetchOgImage(article.url);
+      }
+      const enriched = imageUrl ? { ...article, imageUrl } : article;
+      const { text, usedFallback } = await summarizeArticle(enriched);
       if (usedFallback) summaryFailures += 1;
       else summarized += 1;
       newItems.push({
-        ...article,
+        ...enriched,
         summary: text,
         ingestedAt: now,
-        regions: article.regions ?? ["global"],
-        topics: article.topics ?? ["reality-general"],
+        regions: enriched.regions ?? ["global"],
+        topics: enriched.topics ?? ["reality-general"],
       });
     }
 

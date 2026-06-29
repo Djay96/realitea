@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { NewsItem } from "@/lib/types";
+import CardImage from "./CardImage";
 
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
@@ -47,26 +48,11 @@ export default function NewsCard({
       ref={ref}
       className="snap-card flex h-[100dvh] w-full items-center justify-center px-4 py-6"
     >
-      <div className="flex h-full max-h-[680px] w-full max-w-md animate-fade-in flex-col overflow-hidden rounded-3xl border border-tea-200/60 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="relative h-2/5 w-full shrink-0 bg-tea-100 dark:bg-neutral-800">
-          {item.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.imageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-5xl">
-              🍵
-            </div>
-          )}
-          <span className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
-            {item.source}
-          </span>
-        </div>
+      <div className="relative flex h-full max-h-[680px] w-full max-w-md animate-fade-in flex-col overflow-hidden rounded-3xl border border-tea-200/60 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
+        <CardImage imageUrl={item.imageUrl} topics={item.topics} title={item.title} />
+        <span className="absolute left-7 top-7 z-10 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+          {item.source}
+        </span>
 
         <div className="flex flex-1 flex-col p-5">
           <h2 className="text-xl font-bold leading-snug">{item.title}</h2>

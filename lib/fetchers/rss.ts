@@ -3,6 +3,7 @@ import type { RawArticle, FetchResult } from "../types";
 import { RSS_FEEDS, REALITY_KEYWORDS } from "../sources";
 import type { RssFeedConfig } from "../sources";
 import { idFromUrl, stripHtml, containsAny } from "../util";
+import { extractRssImage } from "../extractImage";
 
 type FeedItem = {
   title?: string;
@@ -11,29 +12,24 @@ type FeedItem = {
   pubDate?: string;
   contentSnippet?: string;
   content?: string;
-  enclosure?: { url?: string };
-  ["media:content"]?: { $?: { url?: string } };
+  ["content:encoded"]?: string;
+  enclosure?: { url?: string; type?: string };
+  ["media:content"]?: { $?: { url?: string; medium?: string } };
   ["media:thumbnail"]?: { $?: { url?: string } };
+  ["itunes:image"]?: string | { $?: { href?: string } };
 };
 
 const parser = new Parser<unknown, FeedItem>({
   timeout: 15000,
   customFields: {
     item: [
+      ["content:encoded", "content:encoded"],
       ["media:content", "media:content"],
       ["media:thumbnail", "media:thumbnail"],
+      ["itunes:image", "itunes:image"],
     ],
   },
 });
-
-function extractImage(item: FeedItem): string | undefined {
-  return (
-    item.enclosure?.url ||
-    item["media:content"]?.$?.url ||
-    item["media:thumbnail"]?.$?.url ||
-    undefined
-  );
-}
 
 async function fetchOne(
   config: RssFeedConfig,
@@ -58,7 +54,7 @@ async function fetchOne(
         source: feed.title?.trim() || name,
         publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
         content,
-        imageUrl: extractImage(item),
+        imageUrl: extractRssImage(item),
         sourceRegion: region,
       });
     }
