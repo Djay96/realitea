@@ -1,5 +1,6 @@
 import type { RawArticle, FetchResult } from "../types";
-import { NEWS_QUERIES } from "../sources";
+import { getNewsApiQueriesForRun } from "../sources";
+import type { NewsApiQueryConfig } from "../sources";
 import { idFromUrl, stripHtml } from "../util";
 
 const PROVIDER = process.env.NEWS_API_PROVIDER || "newsapi";
@@ -16,17 +17,18 @@ interface NewsApiArticle {
   source?: { name?: string };
 }
 
-function buildUrl(query: string): string | null {
+function buildUrl(config: NewsApiQueryConfig): string | null {
   if (!KEY) return null;
-  const q = encodeURIComponent(query);
+  const q = encodeURIComponent(config.query);
   if (PROVIDER === "gnews") {
-    return `https://gnews.io/api/v4/search?q=${q}&lang=en&max=10&sortby=publishedAt&apikey=${KEY}`;
+    const country = config.country ? `&country=${config.country}` : "";
+    return `https://gnews.io/api/v4/search?q=${q}&lang=en&max=10&sortby=publishedAt${country}&apikey=${KEY}`;
   }
-  // default: newsapi.org
-  return `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=10&apiKey=${KEY}`;
+  const country = config.country ? `&country=${config.country}` : "";
+  return `https://newsapi.org/v2/everything?q=${q}&language=en&sortBy=publishedAt&pageSize=10${country}&apiKey=${KEY}`;
 }
 
-function normalize(a: NewsApiArticle): RawArticle | null {
+function normalize(a: NewsApiArticle, config: NewsApiQueryConfig): RawArticle | null {
   if (!a?.url || !a?.title) return null;
   return {
     id: idFromUrl(a.url),
@@ -36,33 +38,33 @@ function normalize(a: NewsApiArticle): RawArticle | null {
     publishedAt: a.publishedAt || new Date().toISOString(),
     content: stripHtml(a.description || a.content || ""),
     imageUrl: a.urlToImage || a.image || undefined,
+    sourceRegion: config.region,
   };
 }
 
 async function fetchQuery(
-  query: string,
+  config: NewsApiQueryConfig,
 ): Promise<{ articles: RawArticle[]; error?: string }> {
-  const url = buildUrl(query);
+  const url = buildUrl(config);
   if (!url) return { articles: [] };
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "RealiTea/1.0" },
-      // Avoid Next.js caching this on the server route.
       cache: "no-store",
     });
     if (!res.ok) {
       const msg = `HTTP ${res.status}`;
-      console.warn(`[newsapi] ${query} -> ${msg}`);
+      console.warn(`[newsapi] ${config.query} -> ${msg}`);
       return { articles: [], error: msg };
     }
     const data = (await res.json()) as { articles?: NewsApiArticle[] };
     const articles = (data.articles ?? [])
-      .map(normalize)
+      .map((a) => normalize(a, config))
       .filter((x): x is RawArticle => x !== null);
     return { articles };
   } catch (err) {
     const msg = (err as Error).message;
-    console.warn(`[newsapi] failed for "${query}":`, msg);
+    console.warn(`[newsapi] failed for "${config.query}":`, msg);
     return { articles: [], error: msg };
   }
 }
@@ -78,23 +80,26 @@ export async function fetchNewsApiArticles(): Promise<FetchResult> {
       ],
     };
   }
+
+  const queries = getNewsApiQueriesForRun();
   const articles: RawArticle[] = [];
   const errors: string[] = [];
-  // Sequential with a tiny gap to be gentle on free-tier rate limits.
-  for (const q of NEWS_QUERIES) {
+
+  for (const q of queries) {
     const r = await fetchQuery(q);
     articles.push(...r.articles);
-    if (r.error) errors.push(`${q}: ${r.error}`);
-    await new Promise((r) => setTimeout(r, 250));
+    if (r.error) errors.push(`${q.query}: ${r.error}`);
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
+
   return {
     articles,
     stats: [
       {
-        source: sourceName,
+        source: `${sourceName} (batch ${queries.length})`,
         type: "newsapi",
         fetched: articles.length,
-        ok: errors.length < NEWS_QUERIES.length,
+        ok: errors.length < queries.length,
         error: errors.length ? errors.join("; ") : undefined,
       },
     ],

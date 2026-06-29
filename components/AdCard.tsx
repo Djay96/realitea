@@ -11,18 +11,19 @@ declare global {
   }
 }
 
-export default function AdCard() {
+export default function AdCard({ slotKey }: { slotKey: string }) {
   const pushed = useRef(false);
 
   useEffect(() => {
-    if (!CLIENT || !SLOT || pushed.current) return;
+    pushed.current = false;
+    if (!CLIENT || !SLOT) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       pushed.current = true;
     } catch {
-      // adsbygoogle not ready yet; will retry on next mount
+      // adsbygoogle not ready yet
     }
-  }, []);
+  }, [slotKey]);
 
   return (
     <section className="snap-card flex h-[100dvh] w-full items-center justify-center px-4 py-6">
@@ -35,6 +36,7 @@ export default function AdCard() {
         <div className="flex flex-1 items-center justify-center p-5">
           {CLIENT && SLOT ? (
             <ins
+              key={slotKey}
               className="adsbygoogle"
               style={{ display: "block", width: "100%", height: "100%" }}
               data-ad-client={CLIENT}

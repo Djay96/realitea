@@ -99,9 +99,10 @@ sequenceDiagram
   R->>API: query each term (IN-2)
   API-->>R: articles + provider stats
   R->>R: dedupe by url-hash id
+  R->>R: tag regions + topics (keyword tagger)
   R->>B: read feed.json (IN-3) to get seen ids
   B-->>R: existing items
-  R->>R: keep only unseen (cap MAX_SUMMARIES_PER_RUN)
+  R->>R: diverse pick unseen (per-source cap)
   loop each new article
     R->>DS: summarize (OUT-1 request)
     DS-->>R: ~60-word summary (IN-4 / OUT-1 response)
@@ -129,7 +130,8 @@ sequenceDiagram
   B-->>P: items
   P-->>U: server-rendered first cards
   U->>L: read ids loaded (IN-5)
-  Note over U,L: unread = items not in read set
+  U->>L: user prefs loaded (IN-6 region + interests)
+  Note over U,L: unread = items not in read set; deck ranked client-side
   U->>U: scroll; card 60% visible -> markRead (OUT-4 to localStorage)
   U->>N: tap Refresh (cheap)
   N->>B: read feed.json
@@ -154,6 +156,8 @@ Every point where data crosses a boundary. `IN` = data entering our system/stage
 | OUT-3 | Persist meta | OUT | pipeline -> `meta.json` | `FeedMeta` (lastRun + history) | hourly/manual job | `GET /api/status` |
 | IN-5 | Read state load | IN | localStorage -> Feed UI | `string[]` read ids | app open / refresh | client-only (`lib/readState.ts`) |
 | OUT-4 | Read state save | OUT | Feed UI -> localStorage | `string[]` read ids | card viewed | client-only |
+| IN-6 | User prefs load | IN | localStorage -> Feed UI | `{ region, interests }` | app open | `lib/userPrefs.ts` |
+| OUT-8 | User prefs save | OUT | Onboarding -> localStorage | `UserPrefs` | onboarding complete | client-only |
 | OUT-5 | Serve feed | OUT | `feed.json` -> client | JSON `{items,...}` | `GET /api/news` | HTTP status / `count` / `isDemo` |
 | OUT-6 | Serve status | OUT | `meta.json` -> client | JSON metrics | `GET /api/status` | response body |
 | OUT-7 | Ads | OUT | client -> Google AdSense | ad request | page render | AdSense dashboard |
@@ -176,8 +180,10 @@ classDiagram
     string? imageUrl
   }
   class NewsItem {
-    string summary   // DeepSeek output
+    string summary
     string ingestedAt
+    string[] regions
+    string[] topics
   }
   class FeedData {
     string updatedAt
@@ -258,7 +264,10 @@ Rolling caps: feed keeps the latest `FEED_MAX_ITEMS` (500); meta keeps the last 
 
 | Control | Value | File |
 | --- | --- | --- |
-| Summaries per run | `MAX_SUMMARIES_PER_RUN` = 40 | `lib/sources.ts` |
+| Summaries per run | `MAX_SUMMARIES_PER_RUN` (default 40) | `lib/sources.ts` |
+| Per-source cap per run | `MAX_PER_SOURCE_PER_RUN` (default 2) | `lib/sources.ts` |
+| News API batch size | `NEWS_API_QUERIES_PER_RUN` = 8 (rotates) | `lib/sources.ts` |
+| Ad card interval | every 4 news cards | `components/Feed.tsx` |
 | Feed size cap | `FEED_MAX_ITEMS` = 500 | `lib/sources.ts` |
 | News API pacing | 250ms between queries | `lib/fetchers/newsapi.ts` |
 | Run cadence | `@hourly` | `netlify/functions/refresh-news.mts` |

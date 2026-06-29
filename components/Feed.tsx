@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { NewsItem } from "@/lib/types";
+import type { NewsItem, RegionSlug, UserPrefs } from "@/lib/types";
 import { getReadSet, markRead } from "@/lib/readState";
+import { loadPrefs, savePrefs } from "@/lib/userPrefs";
+import { rankFeed } from "@/lib/rankFeed";
 import NewsCard from "./NewsCard";
 import AdCard from "./AdCard";
+import Onboarding from "./Onboarding";
 
-const ADS_EVERY = 5;
+const ADS_EVERY = 4;
 
 export default function Feed({
   initialItems,
@@ -24,19 +27,30 @@ export default function Feed({
   const [loading, setLoading] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [isDemo, setIsDemo] = useState(initialIsDemo);
+  const [prefs, setPrefs] = useState<UserPrefs | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
-  const buildDeck = useCallback(
-    (items: NewsItem[], read: Set<string>, all: boolean) =>
-      all ? items : items.filter((i) => !read.has(i.id)),
+  const personalize = useCallback(
+    (items: NewsItem[], userPrefs: UserPrefs | null) => rankFeed(items, userPrefs),
     [],
   );
 
-  // Initialize from localStorage on mount (client only).
+  const buildDeck = useCallback(
+    (items: NewsItem[], read: Set<string>, all: boolean, userPrefs: UserPrefs | null) => {
+      const ranked = personalize(items, userPrefs);
+      return all ? ranked : ranked.filter((i) => !read.has(i.id));
+    },
+    [personalize],
+  );
+
   useEffect(() => {
     const read = getReadSet();
+    const userPrefs = loadPrefs();
     setReadSet(read);
-    setDeck(buildDeck(initialItems, read, false));
+    setPrefs(userPrefs);
+    setShowOnboarding(!userPrefs);
+    setDeck(buildDeck(initialItems, read, false, userPrefs));
   }, [initialItems, buildDeck]);
 
   const handleRead = useCallback((id: string) => {
@@ -49,6 +63,18 @@ export default function Feed({
     });
   }, []);
 
+  const applyPrefs = useCallback(
+    (region: RegionSlug, interests: string[]) => {
+      const saved = savePrefs({ region, interests });
+      setPrefs(saved);
+      setShowOnboarding(false);
+      const read = getReadSet();
+      setDeck(buildDeck(allItems, read, showingAll, saved));
+      scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [allItems, buildDeck, showingAll],
+  );
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
@@ -59,13 +85,14 @@ export default function Feed({
         isDemo?: boolean;
       };
       const items = data.items ?? [];
+      const userPrefs = loadPrefs();
       setAllItems(items);
       setUpdatedAt(data.updatedAt ?? updatedAt);
       setIsDemo(Boolean(data.isDemo));
       const read = getReadSet();
       setReadSet(read);
       setShowingAll(false);
-      setDeck(buildDeck(items, read, false));
+      setDeck(buildDeck(items, read, false, userPrefs));
       scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
@@ -74,34 +101,43 @@ export default function Feed({
 
   const showAll = useCallback(() => {
     setShowingAll(true);
-    setDeck(buildDeck(allItems, readSet, true));
+    setDeck(buildDeck(allItems, readSet, true, prefs));
     scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [allItems, readSet, buildDeck]);
+  }, [allItems, readSet, prefs, buildDeck]);
 
   const unreadCount = useMemo(
     () => allItems.filter((i) => !readSet.has(i.id)).length,
     [allItems, readSet],
   );
 
-  // Interleave ads into the deck for rendering.
   const rendered = useMemo(() => {
-    const out: Array<{ type: "news"; item: NewsItem } | { type: "ad"; key: string }> =
-      [];
+    const out: Array<{ type: "news"; item: NewsItem } | { type: "ad"; key: string }> = [];
     deck.forEach((item, idx) => {
       out.push({ type: "news", item });
-      if ((idx + 1) % ADS_EVERY === 0) out.push({ type: "ad", key: `ad-${idx}` });
+      if ((idx + 1) % ADS_EVERY === 0) {
+        out.push({ type: "ad", key: `ad-slot-${idx}` });
+      }
     });
     return out;
   }, [deck]);
 
   return (
     <div className="relative h-[100dvh] w-full">
+      {showOnboarding ? (
+        <Onboarding
+          onComplete={applyPrefs}
+          onClose={() => setShowOnboarding(false)}
+        />
+      ) : null}
+
       <Header
         unreadCount={unreadCount}
         updatedAt={updatedAt}
         loading={loading}
         onRefresh={refresh}
         isDemo={isDemo}
+        personalized={Boolean(prefs)}
+        onEditPrefs={() => setShowOnboarding(true)}
       />
 
       <div
@@ -125,7 +161,7 @@ export default function Feed({
                   onRead={handleRead}
                 />
               ) : (
-                <AdCard key={entry.key} />
+                <AdCard key={entry.key} slotKey={entry.key} />
               ),
             )}
             <CaughtUp
@@ -148,12 +184,16 @@ function Header({
   loading,
   onRefresh,
   isDemo,
+  personalized,
+  onEditPrefs,
 }: {
   unreadCount: number;
   updatedAt: string;
   loading: boolean;
   onRefresh: () => void;
   isDemo: boolean;
+  personalized: boolean;
+  onEditPrefs: () => void;
 }) {
   const updated =
     updatedAt && new Date(updatedAt).getTime() > 0
@@ -170,6 +210,11 @@ function Header({
         <span className="font-extrabold tracking-tight">
           Reali<span className="text-tea-500">Tea</span>
         </span>
+        {personalized ? (
+          <span className="ml-1 rounded-full bg-tea-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-tea-700 dark:text-tea-300">
+            For you
+          </span>
+        ) : null}
         {unreadCount > 0 ? (
           <span className="ml-1 rounded-full bg-tea-500 px-2 py-0.5 text-xs font-bold text-white">
             {unreadCount}
@@ -184,15 +229,25 @@ function Header({
           </span>
         ) : null}
       </div>
-      <button
-        onClick={onRefresh}
-        disabled={loading}
-        className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-tea-500 px-3 py-1.5 text-sm font-semibold text-white shadow transition hover:bg-tea-600 disabled:opacity-60"
-      >
-        <span className={loading ? "inline-block animate-spin" : ""}>↻</span>
-        <span className="hidden text-xs opacity-90 sm:inline">{updated}</span>
-        Refresh
-      </button>
+      <div className="pointer-events-auto flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onEditPrefs}
+          className="rounded-full bg-white/80 px-3 py-1.5 text-sm font-medium shadow backdrop-blur hover:bg-white dark:bg-neutral-900/80"
+          title="Edit your region and interests"
+        >
+          ⚙️
+        </button>
+        <button
+          onClick={onRefresh}
+          disabled={loading}
+          className="flex items-center gap-1.5 rounded-full bg-tea-500 px-3 py-1.5 text-sm font-semibold text-white shadow transition hover:bg-tea-600 disabled:opacity-60"
+        >
+          <span className={loading ? "inline-block animate-spin" : ""}>↻</span>
+          <span className="hidden text-xs opacity-90 sm:inline">{updated}</span>
+          Refresh
+        </button>
+      </div>
     </header>
   );
 }

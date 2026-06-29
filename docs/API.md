@@ -3,7 +3,7 @@
 All endpoints are Next.js route handlers deployed on Netlify. See [ARCHITECTURE.md](ARCHITECTURE.md) for how each maps to the system's data input/output points.
 
 Base URL (local prod): `http://localhost:3000`
-Base URL (deployed): `https://<your-site>.netlify.app`
+Base URL (deployed): `https://realitea.netlify.app`
 
 | Endpoint | Method | Auth | Calls AI / news sources? | I/O point |
 | --- | --- | --- | --- | --- |
@@ -41,7 +41,9 @@ Returns the cached feed. This is what the UI calls on refresh — it never trigg
       "ingestedAt": "2026-06-28T19:00:00.000Z",
       "content": "raw snippet used as summarization input",
       "summary": "Love Island is back with contestants from five continents...",
-      "imageUrl": "https://.../thumb.jpg"
+      "imageUrl": "https://.../thumb.jpg",
+      "regions": ["uk", "global"],
+      "topics": ["love-island"]
     }
   ]
 }
@@ -52,7 +54,9 @@ Returns the cached feed. This is what the UI calls on refresh — it never trigg
 | `updatedAt` | When the feed cache was last written by the pipeline |
 | `count` | Number of items returned |
 | `isDemo` | `true` when serving built-in sample data (cache empty) |
-| `items[]` | `NewsItem` records, newest first |
+| `items[]` | `NewsItem` records (client ranks by user prefs) |
+| `items[].regions` | Region slugs: `us`, `uk`, `india`, `australia`, `canada`, `global` |
+| `items[].topics` | Show topic slugs for personalization (e.g. `love-island`, `bigg-boss`) |
 
 ### Example
 

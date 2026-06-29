@@ -1,6 +1,7 @@
 import Parser from "rss-parser";
-import type { RawArticle, FetchResult, SourceStat } from "../types";
+import type { RawArticle, FetchResult } from "../types";
 import { RSS_FEEDS, REALITY_KEYWORDS } from "../sources";
+import type { RssFeedConfig } from "../sources";
 import { idFromUrl, stripHtml, containsAny } from "../util";
 
 type FeedItem = {
@@ -35,9 +36,9 @@ function extractImage(item: FeedItem): string | undefined {
 }
 
 async function fetchOne(
-  name: string,
-  url: string,
-): Promise<{ articles: RawArticle[]; stat: SourceStat }> {
+  config: RssFeedConfig,
+): Promise<{ articles: RawArticle[]; stat: FetchResult["stats"][0] }> {
+  const { name, url, region, dedicated } = config;
   try {
     const feed = await parser.parseURL(url);
     const out: RawArticle[] = [];
@@ -47,10 +48,8 @@ async function fetchOne(
       if (!link || !title) continue;
 
       const content = stripHtml(item.contentSnippet || item.content || "");
-      // Broad entertainment feeds: keep only reality-relevant stories.
       const haystack = `${title} ${content}`;
-      const isDedicatedFeed = /reality/i.test(name) || /reality/i.test(url);
-      if (!isDedicatedFeed && !containsAny(haystack, REALITY_KEYWORDS)) continue;
+      if (!dedicated && !containsAny(haystack, REALITY_KEYWORDS)) continue;
 
       out.push({
         id: idFromUrl(link),
@@ -60,6 +59,7 @@ async function fetchOne(
         publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
         content,
         imageUrl: extractImage(item),
+        sourceRegion: region,
       });
     }
     return {
@@ -77,7 +77,7 @@ async function fetchOne(
 }
 
 export async function fetchRssArticles(): Promise<FetchResult> {
-  const results = await Promise.all(RSS_FEEDS.map((f) => fetchOne(f.name, f.url)));
+  const results = await Promise.all(RSS_FEEDS.map((f) => fetchOne(f)));
   return {
     articles: results.flatMap((r) => r.articles),
     stats: results.map((r) => r.stat),

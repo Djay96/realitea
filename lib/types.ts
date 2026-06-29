@@ -1,3 +1,5 @@
+export type RegionSlug = "us" | "uk" | "india" | "australia" | "canada" | "global";
+
 export interface RawArticle {
   /** Stable id derived from the canonical URL. */
   id: string;
@@ -9,6 +11,10 @@ export interface RawArticle {
   /** Raw description / content snippet used as input for summarization. */
   content: string;
   imageUrl?: string;
+  /** Region hint from the fetcher config. */
+  sourceRegion?: RegionSlug;
+  regions?: RegionSlug[];
+  topics?: string[];
 }
 
 export interface NewsItem extends RawArticle {
@@ -16,6 +22,8 @@ export interface NewsItem extends RawArticle {
   summary: string;
   /** ISO timestamp of when this item was summarized & stored. */
   ingestedAt: string;
+  regions: RegionSlug[];
+  topics: string[];
 }
 
 export interface FeedData {
@@ -64,4 +72,10 @@ export interface RunStats {
 export interface FeedMeta {
   lastRun: RunStats | null;
   history: RunStats[];
+}
+
+export interface UserPrefs {
+  region: RegionSlug;
+  interests: string[];
+  onboardedAt: string;
 }
