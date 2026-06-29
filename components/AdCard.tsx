@@ -5,6 +5,7 @@ import { adsEnabled } from "@/lib/ads";
 
 const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 const SLOT = process.env.NEXT_PUBLIC_ADSENSE_SLOT;
+const LAYOUT_KEY = process.env.NEXT_PUBLIC_ADSENSE_LAYOUT_KEY;
 
 declare global {
   interface Window {
@@ -36,15 +37,15 @@ export default function AdCard({ slotKey }: { slotKey: string }) {
             Sponsored
           </span>
         </div>
-        <div className="flex flex-1 items-center justify-center p-5">
+        <div className="flex min-h-0 flex-1 items-stretch justify-center p-5">
           <ins
             key={slotKey}
-            className="adsbygoogle"
-            style={{ display: "block", width: "100%", height: "100%" }}
+            className="adsbygoogle block w-full"
+            style={{ display: "block", width: "100%", minHeight: "250px" }}
             data-ad-client={CLIENT}
             data-ad-slot={SLOT}
-            data-ad-format="auto"
-            data-full-width-responsive="true"
+            data-ad-format="fluid"
+            {...(LAYOUT_KEY ? { "data-ad-layout-key": LAYOUT_KEY } : {})}
           />
         </div>
       </div>
