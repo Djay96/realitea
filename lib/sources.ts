@@ -1,4 +1,5 @@
 import type { RegionSlug } from "./types";
+import { getShowNewsQueries } from "./shows";
 
 /**
  * Configuration for where raw reality-TV news comes from.
@@ -34,47 +35,33 @@ export interface NewsApiQueryConfig {
   country?: string;
 }
 
-/** All news API queries — rotated per hourly run to stay within free-tier limits. */
-export const NEWS_API_QUERIES: NewsApiQueryConfig[] = [
-  // US
-  { query: "Survivor reality", region: "us", country: "us" },
-  { query: "The Bachelor Bachelorette", region: "us", country: "us" },
-  { query: "Real Housewives", region: "us", country: "us" },
-  { query: "RuPaul Drag Race", region: "us", country: "us" },
-  // UK
-  { query: "Love Island UK", region: "uk", country: "gb" },
-  { query: "I'm A Celebrity", region: "uk", country: "gb" },
-  { query: "Strictly Come Dancing", region: "uk", country: "gb" },
-  // India
-  { query: "Bigg Boss", region: "india", country: "in" },
-  { query: "Indian Idol reality", region: "india", country: "in" },
-  { query: "Khatron Ke Khiladi", region: "india", country: "in" },
-  // Australia
-  { query: "MasterChef Australia", region: "australia", country: "au" },
-  { query: "Married At First Sight Australia", region: "australia", country: "au" },
-  { query: "Love Island Australia", region: "australia", country: "au" },
-  // Canada
-  { query: "Big Brother Canada", region: "canada", country: "ca" },
-  { query: "The Traitors Canada", region: "canada", country: "ca" },
-  // Global
-  { query: "reality TV show", region: "global" },
-  { query: "The Traitors reality", region: "global" },
-  { query: "Love Island", region: "global" },
-];
+/**
+ * All news API queries — now derived from the active shows in lib/shows.ts so
+ * we only ever ask the news API about shows we actually cover. Rotated per
+ * hourly run to stay within free-tier limits (airing/upcoming shows first).
+ */
+export const NEWS_API_QUERIES: NewsApiQueryConfig[] = getShowNewsQueries();
 
-/** Queries per hourly run (rotate batches to cover all regions over time). */
+/** Queries per hourly run (rotate batches to cover all shows over time). */
 export const NEWS_API_QUERIES_PER_RUN = 8;
 
 /** Return the news API query batch for the current UTC hour. */
 export function getNewsApiQueriesForRun(): NewsApiQueryConfig[] {
+  const all = NEWS_API_QUERIES;
+  if (all.length === 0) return [];
   const batchSize = NEWS_API_QUERIES_PER_RUN;
   const batchIndex =
-    Math.floor(Date.now() / 3_600_000) % Math.ceil(NEWS_API_QUERIES.length / batchSize);
+    Math.floor(Date.now() / 3_600_000) % Math.ceil(all.length / batchSize);
   const start = batchIndex * batchSize;
-  return NEWS_API_QUERIES.slice(start, start + batchSize);
+  return all.slice(start, start + batchSize);
 }
 
-/** Keywords used to keep only reality-TV-relevant articles from broad feeds. */
+/**
+ * Cheap pre-filter keywords for BROAD RSS feeds (EW, Deadline, …). This is only
+ * a coarse first pass to avoid summarizing obvious non-reality items early; the
+ * authoritative relevance gate is the per-show match in refresh.ts, which keeps
+ * only articles that mention an active show from lib/shows.ts.
+ */
 export const REALITY_KEYWORDS: string[] = [
   "reality",
   "big brother",
@@ -94,7 +81,6 @@ export const REALITY_KEYWORDS: string[] = [
   "below deck",
   "90 day fiance",
   "married at first sight",
-  "celebrity",
   "strictly",
   "khatron",
 ];

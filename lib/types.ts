@@ -15,6 +15,8 @@ export interface RawArticle {
   sourceRegion?: RegionSlug;
   regions?: RegionSlug[];
   topics?: string[];
+  /** Ids of reality shows (from lib/shows.ts) this article mentions. */
+  shows?: string[];
 }
 
 export interface NewsItem extends RawArticle {
@@ -24,6 +26,8 @@ export interface NewsItem extends RawArticle {
   ingestedAt: string;
   regions: RegionSlug[];
   topics: string[];
+  /** Ids of reality shows this article mentions (≥1 by construction). */
+  shows: string[];
 }
 
 export interface FeedData {

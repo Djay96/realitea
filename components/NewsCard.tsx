@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { NewsItem } from "@/lib/types";
+import { primaryShow } from "@/lib/shows";
 import CardImage from "./CardImage";
 
 function timeAgo(iso: string): string {
@@ -24,6 +25,7 @@ export default function NewsCard({
   onRead: (id: string) => void;
 }) {
   const ref = useRef<HTMLElement>(null);
+  const show = primaryShow(item.shows);
 
   useEffect(() => {
     const el = ref.current;
@@ -53,6 +55,15 @@ export default function NewsCard({
         <span className="absolute left-7 top-7 z-10 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
           {item.source}
         </span>
+        {show ? (
+          <span
+            title={`${show.name}${show.network ? ` · ${show.network}` : ""}`}
+            className="absolute right-7 top-7 z-10 flex items-center gap-1 rounded-full bg-tea-500/90 px-3 py-1 text-xs font-semibold text-white shadow backdrop-blur"
+          >
+            <span aria-hidden>📺</span>
+            {show.name}
+          </span>
+        ) : null}
 
         <div className="flex flex-1 flex-col p-5">
           <h2 className="text-xl font-bold leading-snug">{item.title}</h2>

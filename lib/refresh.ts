@@ -46,11 +46,16 @@ export async function refreshNews(
 
     const tagged = dedupeRaw([...rss.articles, ...api.articles]).map(tagArticle);
     totalFetched = rss.articles.length + api.articles.length;
-    deduped = tagged.length;
+
+    // Core relevance gate: keep ONLY articles that mention an active reality
+    // show from lib/shows.ts. This is what stops generic entertainment news
+    // (and unrelated items from broad/dedicated feeds) reaching the feed.
+    const relevant = tagged.filter((a) => (a.shows?.length ?? 0) > 0);
+    deduped = relevant.length;
 
     const existing = await readFeed();
     const seen = new Set(existing.items.map((i) => i.id));
-    const unseen = tagged.filter((a) => !seen.has(a.id));
+    const unseen = relevant.filter((a) => !seen.has(a.id));
     const fresh = pickDiverse(unseen, MAX_SUMMARIES_PER_RUN);
     newCount = fresh.length;
 
@@ -71,6 +76,7 @@ export async function refreshNews(
         ingestedAt: now,
         regions: enriched.regions ?? ["global"],
         topics: enriched.topics ?? ["reality-general"],
+        shows: enriched.shows ?? [],
       });
     }
 

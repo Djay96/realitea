@@ -1,4 +1,5 @@
 import type { RawArticle, NewsItem } from "./types";
+import { matchShowsInText, SHOW_BY_ID } from "./shows";
 
 interface TopicRule {
   slug: string;
@@ -50,13 +51,24 @@ function matchRegions(text: string, sourceRegion?: import("./types").RegionSlug)
   return Array.from(regions);
 }
 
-/** Keyword-based region + topic tags (no extra API calls). */
+/** Keyword-based region + topic + show tags (no extra API calls). */
 export function tagArticle(article: RawArticle): RawArticle {
   const text = haystack(article);
+  const shows = matchShowsInText(text);
+  const regions = matchRegions(text, article.sourceRegion);
+  // Let the matched shows reinforce region tags (a show's home region is a
+  // strong signal even when the copy doesn't name the country).
+  for (const id of shows) {
+    const region = SHOW_BY_ID.get(id)?.region;
+    if (region && region !== "global" && !regions.includes(region)) {
+      regions.push(region);
+    }
+  }
   return {
     ...article,
-    regions: matchRegions(text, article.sourceRegion),
+    regions,
     topics: matchTopics(text),
+    shows,
   };
 }
 
@@ -81,5 +93,6 @@ export function normalizeNewsItem(
     ingestedAt: item.ingestedAt,
     regions: item.regions?.length ? item.regions : (tagged.regions ?? ["global"]),
     topics: item.topics?.length ? item.topics : (tagged.topics ?? ["reality-general"]),
+    shows: item.shows?.length ? item.shows : (tagged.shows ?? []),
   };
 }
