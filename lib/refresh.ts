@@ -12,6 +12,7 @@ import { MAX_SUMMARIES_PER_RUN } from "./sources";
 import { tagArticle } from "./tagging";
 import { pickDiverse } from "./pickDiverse";
 import { fetchOgImage } from "./extractImage";
+import { fetchOmdbPoster } from "./omdb";
 
 function dedupeRaw(articles: RawArticle[]): RawArticle[] {
   const byId = new Map<string, RawArticle>();
@@ -65,6 +66,9 @@ export async function refreshNews(
       let imageUrl = article.imageUrl;
       if (!imageUrl) {
         imageUrl = await fetchOgImage(article.url);
+      }
+      if (!imageUrl) {
+        imageUrl = await fetchOmdbPoster(article);
       }
       const enriched = imageUrl ? { ...article, imageUrl } : article;
       const { text, usedFallback } = await summarizeArticle(enriched);
