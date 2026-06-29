@@ -36,10 +36,28 @@ DeepSeek for summaries, Netlify Blobs for the cached feed.
   `shows-overrides.json` (+ `…-meta.json` changelog). `lib/showOverrides.ts` reads them in
   the hourly gate → ended shows drop out **live, no redeploy** ("auto-apply").
 - Preview locally: `OMDB_API_KEY=… npm run refresh:shows` (read-only, prints changes).
+- **Title guard**: `refreshShowsFromOmdb` only applies a status change when OMDb's title
+  token-matches our name (`titleMatches`). A wrong IMDb id resolves to a different title →
+  reported as a `mismatch`, never auto-applied. So bad ids never drop a live show.
+- **deriveStatus is conservative**: OMDb often returns only the START year for ongoing
+  shows ("2015", no dash), so a SINGLE year never flips to ended. Only an explicit END-year
+  range ≥2 yrs stale ("2014–2023") retires a show.
 - **OMDb can't browse IMDb by genre** → the weekly job keeps KNOWN shows fresh but does
   NOT discover new shows. Add new shows by appending their IMDb id to `SHOWS`.
 - A Netlify scheduled function can't `git commit`; "auto-apply" = write the override blob
   the app reads live. The committed `SHOWS` catalog is the seed/fallback.
+
+### IMDb id quality (known debt)
+- The initial catalog's IMDb ids came from research agents and are ~⅓ wrong (resolve to
+  unrelated titles). They cause NO harm — the title guard skips them and those shows stay
+  active per the seed — but they don't get weekly status checks until fixed.
+- `npm run refresh:shows` lists the mismatched ids. To fix: `OMDB_API_KEY=… npm run
+  resolve:ids` suggests exact-title ids (DRY by default; `-- --write` persists ALL to
+  `lib/shows.imdb.json`, which is merged over inline seeds at load). CAVEAT: OMDb search
+  can't tell a revival from its defunct original or a franchise spin-off — it picks the
+  OLDEST exact-title match, which is wrong for revivals (e.g. Australian Survivor → 2002
+  original, not the 2016 series). So hand-verify before trusting; prefer editing
+  `lib/shows.imdb.json` with only the ones you've checked.
 
 ## Learnings log
 

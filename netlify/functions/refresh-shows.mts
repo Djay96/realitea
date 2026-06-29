@@ -41,6 +41,7 @@ export default async function handler() {
       skipped: result.skipped,
       changed: result.updates.length,
       updates: result.updates,
+      mismatches: result.mismatches,
     });
 
     console.log("[refresh-shows] done", {

@@ -17,12 +17,12 @@ async function main() {
   }
 
   console.log("Checking every show with an IMDb id against OMDb…\n");
-  const { checked, failed, skipped, updates } = await refreshShowsFromOmdb(apiKey);
+  const { checked, failed, skipped, updates, mismatches } = await refreshShowsFromOmdb(apiKey);
 
   if (updates.length === 0) {
     console.log("No status changes — catalog matches IMDb.");
   } else {
-    console.log(`${updates.length} change(s):\n`);
+    console.log(`${updates.length} status change(s) (would auto-apply):\n`);
     for (const u of updates) {
       console.log(
         ` - ${u.name} [${u.imdb}]: ${u.before.status}/${u.before.active ? "active" : "inactive"}` +
@@ -30,7 +30,15 @@ async function main() {
       );
     }
   }
-  console.log(`\nchecked=${checked}  failed=${failed}  skipped(no imdb)=${skipped}`);
+
+  if (mismatches.length > 0) {
+    console.log(`\n⚠ ${mismatches.length} wrong/mismatched IMDb id(s) — FIX in lib/shows.ts (never auto-applied):\n`);
+    for (const m of mismatches) {
+      console.log(` - ${m.name} [${m.imdb}] resolves to "${m.imdbTitle}" (${m.year})`);
+    }
+  }
+
+  console.log(`\nchecked=${checked}  failed=${failed}  mismatched=${mismatches.length}  skipped(no imdb)=${skipped}`);
 }
 
 main().catch((err) => {

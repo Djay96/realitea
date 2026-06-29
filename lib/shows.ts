@@ -1,4 +1,8 @@
 import type { RegionSlug } from "./types";
+// Machine-maintained IMDb id corrections (id → "tt…"), written by
+// `npm run resolve:ids` (OMDb title search). Merged over the inline `imdb`
+// seeds below so ids stay anchored to IMDb without hand-editing this file.
+import IMDB_OVERRIDES from "./shows.imdb.json";
 
 /**
  * Curated, IMDb-keyed database of reality-TV shows, grouped by country.
@@ -369,6 +373,12 @@ export const SHOWS: Show[] = [
   // ───────────────────────────────── Malaysia ──────────────────────────────
   { id: "gegar-vaganza", name: "Gegar Vaganza", aliases: ["gegar vaganza"], network: "Astro Ria", region: "malaysia", genre: "talent", status: "returning", active: true, imdb: "tt35434010" },
 ];
+
+// Re-anchor IMDb ids to the resolver's corrections (golden source) where present.
+for (const s of SHOWS) {
+  const corrected = (IMDB_OVERRIDES as Record<string, string>)[s.id];
+  if (corrected) s.imdb = corrected;
+}
 
 export const SHOW_BY_ID: Map<string, Show> = new Map(SHOWS.map((s) => [s.id, s]));
 

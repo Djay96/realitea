@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "refresh:local": "tsx scripts/refresh-local.ts",
-    "refresh:shows": "tsx scripts/refresh-shows.ts"
+    "refresh:shows": "tsx scripts/refresh-shows.ts",
+    "resolve:ids": "tsx scripts/resolve-imdb-ids.ts"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
